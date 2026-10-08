@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ประกาศของฉัน — SECOND</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<header>
+  <nav>
+    <div class="logo"><a href="index.html"><span class="logo-se">SE</span><span class="logo-cond">COND</span></a></div>
+    <div class="navlinks" id="navlinks"></div>
+    <div class="nav-right" id="navRight"></div>
+  </nav>
+</header>
+
+<section class="section">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>ประกาศของฉัน</h2>
+      <span class="tag" id="itemCount">0 รายการ</span>
+    </div>
+    <div class="grid" id="myGrid"></div>
+  </div>
+</section>
+
+<footer>© 2026 SECOND — BY ANUWAT</footer>
+
+<script src="js/api.js"></script>
+<script src="js/common.js"></script>
+<script>
+  renderNav();
+
+  const user = getUser();
+  if(!user){
+    toast('กรุณาเข้าสู่ระบบก่อน', 'error');
+    setTimeout(() => window.location.href = 'login.html', 900);
+  } else {
+    // ตอนนี้ backend ยังไม่มี endpoint กรองเฉพาะของฉันโดยตรง เลยดึงทั้งหมดมากรองฝั่งหน้าเว็บแทน
+    // (ถ้าสินค้าในระบบเยอะมากๆ ควรเพิ่ม endpoint /api/listings?seller=me ที่ backend แทนวิธีนี้)
+    showSkeleton('myGrid', 4);
+    API.getListings().then(items => {
+      const mine = items.filter(i => i.seller && i.seller._id === user.id);
+      renderListingGrid('myGrid', mine);
+      document.getElementById('itemCount').textContent = mine.length + ' รายการ';
+    }).catch(err => {
+      document.getElementById('myGrid').innerHTML = `
+        <div class="empty-state">
+          <div class="big">⚠️</div>
+          <strong>เชื่อมต่อ backend ไม่ได้</strong>
+        </div>
+      `;
+    });
+  }
+</script>
+</body>
+</html>

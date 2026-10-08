@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ลงขายสินค้า — SECOND</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<header>
+  <nav>
+    <div class="logo"><a href="index.html"><span class="logo-se">SE</span><span class="logo-cond">COND</span></a></div>
+    <div class="navlinks" id="navlinks"></div>
+    <div class="nav-right" id="navRight"></div>
+  </nav>
+</header>
+
+<div class="form-wrap" style="max-width:620px;">
+  <div class="form-card">
+    <h1>ลงขายสินค้า</h1>
+    <p class="form-sub">กรอกรายละเอียดสินค้าที่อยากขาย พร้อมแนบรูปได้สูงสุด 5 รูป</p>
+
+    <div class="form-msg" id="formMsg"></div>
+
+    <form id="sellForm">
+      <div class="field">
+        <label for="title">ชื่อสินค้า</label>
+        <input type="text" id="title" required placeholder="เช่น iPhone 13 มือสอง สภาพดี">
+      </div>
+
+      <div class="field">
+        <label for="category">หมวดหมู่</label>
+        <select id="category" required>
+          <option value="">-- เลือกหมวดหมู่ --</option>
+        </select>
+      </div>
+
+      <div class="field" id="subcategoryField" style="display:none;">
+        <label for="subcategory">หมวดหมู่ย่อย</label>
+        <select id="subcategory">
+          <option value="">-- ไม่ระบุ --</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="condition">สภาพสินค้า</label>
+        <select id="condition">
+          <option value="สภาพดี">สภาพดี</option>
+          <option value="ใหม่">ใหม่</option>
+          <option value="สภาพดีมาก">สภาพดีมาก</option>
+          <option value="พอใช้ได้">พอใช้ได้</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="price">ราคา (บาท)</label>
+        <input type="number" id="price" required min="0" placeholder="เช่น 5000">
+      </div>
+
+      <div class="field">
+        <label for="description">รายละเอียดสินค้า</label>
+        <textarea id="description" required placeholder="บอกรายละเอียด ตำหนิ อุปกรณ์ที่แถม ฯลฯ"></textarea>
+      </div>
+
+      <div class="field">
+        <label>รูปสินค้า (สูงสุด 5 รูป)</label>
+        <div class="img-drop" id="imgDrop">
+          <div>📷 กดเพื่อเลือกรูป หรือลากไฟล์มาวางตรงนี้</div>
+        </div>
+        <input type="file" id="imgInput" accept="image/*" multiple style="display:none;">
+        <div class="img-preview-row" id="previewRow"></div>
+      </div>
+
+      <button type="submit" class="submit-btn" id="submitBtn">ลงประกาศขาย</button>
+    </form>
+  </div>
+</div>
+
+<footer>© 2026 SECOND — BY ANUWAT</footer>
+
+<script src="js/api.js"></script>
+<script src="js/common.js"></script>
+<script>
+  renderNav();
+
+  if(!isLoggedIn()){
+    toast('กรุณาเข้าสู่ระบบก่อนลงขายสินค้า', 'error');
+    setTimeout(() => window.location.href = 'login.html', 900);
+  }
+
+  // ดึงหมวดหมู่หลักจาก backend (เป็น array ของข้อความล้วนๆ เช่น "ไอที", "แฟชั่น")
+  const categorySelect = document.getElementById('category');
+  const subcategorySelect = document.getElementById('subcategory');
+  const subcategoryField = document.getElementById('subcategoryField');
+
+  API.getCategories().then(cats => {
+    categorySelect.innerHTML += cats.map(c => `<option value="${c}">${c}</option>`).join('');
+  });
+
+  // พอเลือกหมวดหลัก ให้โชว์หมวดย่อยที่ตรงกัน (ข้อมูลมาจาก CATEGORY_SUBCATS ใน js/common.js ไฟล์เดียวกับที่ใช้สร้างเมนู hover)
+  categorySelect.addEventListener('change', () => {
+    const cat = categorySelect.value;
+    const subs = CATEGORY_SUBCATS[cat];
+    if(subs && subs.length){
+      subcategorySelect.innerHTML = '<option value="">-- ไม่ระบุ --</option>' + subs.map(s => `<option value="${s}">${s}</option>`).join('');
+      subcategoryField.style.display = 'block';
+    } else {
+      subcategorySelect.innerHTML = '<option value="">-- ไม่ระบุ --</option>';
+      subcategoryField.style.display = 'none';
+    }
+  });
+
+  // เลือกรูป + พรีวิว
+  let selectedFiles = [];
+  const imgDrop = document.getElementById('imgDrop');
+  const imgInput = document.getElementById('imgInput');
+  const previewRow = document.getElementById('previewRow');
+
+  imgDrop.addEventListener('click', () => imgInput.click());
+  imgInput.addEventListener('change', (e) => {
+    const newFiles = Array.from(e.target.files).slice(0, 5 - selectedFiles.length);
+    selectedFiles = selectedFiles.concat(newFiles).slice(0, 5);
+    renderPreviews();
+  });
+
+  function renderPreviews(){
+    previewRow.innerHTML = selectedFiles.map((file, i) => {
+      const url = URL.createObjectURL(file);
+      return `<div class="img-preview"><img src="${url}" alt="รูปที่ ${i+1}"></div>`;
+    }).join('');
+  }
+
+  // ส่งฟอร์ม
+  const form = document.getElementById('sellForm');
+  const msgEl = document.getElementById('formMsg');
+  const submitBtn = document.getElementById('submitBtn');
+
+  function showMsg(text, type){
+    msgEl.textContent = text;
+    msgEl.className = 'form-msg show ' + type;
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'กำลังลงประกาศ...';
+
+    try{
+      const fd = new FormData();
+      fd.append('title', document.getElementById('title').value);
+      fd.append('category', document.getElementById('category').value);
+      fd.append('subcategory', document.getElementById('subcategory').value);
+      fd.append('condition', document.getElementById('condition').value);
+      fd.append('price', document.getElementById('price').value);
+      fd.append('description', document.getElementById('description').value);
+      selectedFiles.forEach(f => fd.append('images', f));
+
+      const listing = await API.createListing(fd);
+      showMsg('ลงประกาศสำเร็จ! กำลังพาไปหน้าสินค้า...', 'success');
+      
+      const listingId = listing.id || listing._id;
+      setTimeout(() => { window.location.href = 'listing.html?id=' + listingId; }, 1200);
+    }catch(err){
+      showMsg(err.message, 'error');
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'ลงประกาศขาย';
+    }
+  });
+</script>
+</body>
+</html>

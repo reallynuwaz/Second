@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>สมัครสมาชิก — SECOND</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<header>
+  <nav>
+    <div class="logo"><a href="index.html"><span class="logo-se">SE</span><span class="logo-cond">COND</span></a></div>
+    <div class="navlinks" id="navlinks"></div>
+    <div class="nav-right" id="navRight"></div>
+  </nav>
+</header>
+
+<div class="form-wrap">
+  <div class="form-card">
+    <h1>สมัครสมาชิก</h1>
+    <p class="form-sub">สมัครฟรี เพื่อเริ่มซื้อขายสินค้ามือสอง</p>
+
+    <div class="form-msg" id="formMsg"></div>
+
+    <form id="registerForm">
+      <div class="field">
+        <label for="name">ชื่อ-นามสกุล / ชื่อที่ใช้แสดง</label>
+        <input type="text" id="name" required placeholder="เช่น สมชาย ใจดี">
+      </div>
+      <div class="field">
+        <label for="email">อีเมล</label>
+        <input type="email" id="email" required placeholder="name@email.com">
+      </div>
+      <div class="field">
+        <label for="password">รหัสผ่าน</label>
+        <input type="password" id="password" required placeholder="อย่างน้อย 6 ตัวอักษร">
+        <div class="field-hint">ต้องมีอย่างน้อย 6 ตัวอักษร</div>
+      </div>
+      <button type="submit" class="submit-btn" id="submitBtn">สมัครสมาชิก</button>
+    </form>
+
+    <p class="form-switch">มีบัญชีอยู่แล้ว? <a href="login.html">เข้าสู่ระบบ</a></p>
+  </div>
+</div>
+
+<footer>© 2026 SECOND — BY ANUWAT</footer>
+
+<script src="js/api.js"></script>
+<script src="js/common.js"></script>
+<script>
+  renderNav();
+  if(isLoggedIn()) window.location.href = 'index.html';
+
+  const form = document.getElementById('registerForm');
+  const msgEl = document.getElementById('formMsg');
+  const submitBtn = document.getElementById('submitBtn');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'กำลังสมัคร...';
+    try{
+      const name = document.getElementById('name').value;
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const data = await API.register(name, email, password);
+      saveAuth(data.token, data.user);
+      window.location.href = 'index.html';
+    }catch(err){
+      msgEl.textContent = err.message;
+      msgEl.className = 'form-msg show error';
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'สมัครสมาชิก';
+    }
+  });
+</script>
+</body>
+</html>

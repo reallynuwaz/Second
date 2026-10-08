@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>รายละเอียดสินค้า — SECOND</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="wrap">
+    <a href="#">ความช่วยเหลือ</a>
+    <a href="#">เกี่ยวกับเรา</a>
+  </div>
+</div>
+
+<header>
+  <nav>
+    <div class="logo"><a href="index.html"><span class="logo-se">SE</span><span class="logo-cond">COND</span></a></div>
+    <div class="navlinks" id="navlinks"></div>
+    <div class="nav-right" id="navRight"></div>
+  </nav>
+</header>
+
+<div class="listing-body" id="listingBody" style="display:none;">
+  <div class="listing-gallery">
+    <div class="listing-main-img" id="mainImg"></div>
+    <div class="listing-thumbs" id="thumbs"></div>
+  </div>
+  <div class="listing-info">
+    <span class="listing-cat" id="lCat"></span>
+    <h1 id="lTitle"></h1>
+    <div class="listing-price" id="lPrice"></div>
+    <div class="listing-tags">
+      <span class="listing-tag" id="lCond"></span>
+      <span class="listing-tag" id="lStatus"></span>
+    </div>
+    <p class="listing-desc" id="lDesc"></p>
+    <div class="seller-box" id="sellerBox"></div>
+    <div id="actionArea"></div>
+  </div>
+</div>
+
+<div class="empty-state" id="notFound" style="display:none; margin:60px 24px;">
+  <div class="big">🔍</div>
+  <strong>ไม่พบประกาศนี้</strong>
+  <p style="margin-top:6px;"><a href="index.html" style="text-decoration:underline;">← กลับหน้าแรก</a></p>
+</div>
+
+<footer>© 2026 SECOND — BY ANUWAT</footer>
+
+<script src="js/api.js"></script>
+<script src="js/common.js"></script>
+<script>
+  renderNav();
+
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get('id');
+  const currentUser = getUser();
+
+  if(!id){
+    document.getElementById('notFound').style.display = 'block';
+  } else {
+    API.getListing(id).then(item => {
+      document.getElementById('listingBody').style.display = 'grid';
+      document.title = item.title + ' — SECOND';
+
+      const images = item.images && item.images.length ? item.images.map(imageUrl) : [];
+      const mainImgEl = document.getElementById('mainImg');
+      const thumbsEl = document.getElementById('thumbs');
+
+      mainImgEl.innerHTML = images[0] ? `<img src="${images[0]}" alt="${item.title}">` : '<div class="noimg">🖼️</div>';
+
+      thumbsEl.innerHTML = images.map((src, i) => `
+        <div class="listing-thumb ${i===0?'active':''}" data-src="${src}">
+          <img src="${src}" alt="มุมที่ ${i+1}">
+        </div>
+      `).join('');
+      thumbsEl.querySelectorAll('.listing-thumb').forEach(t => {
+        t.addEventListener('click', () => {
+          thumbsEl.querySelectorAll('.listing-thumb').forEach(x => x.classList.remove('active'));
+          t.classList.add('active');
+          mainImgEl.innerHTML = `<img src="${t.dataset.src}" alt="${item.title}">`;
+        });
+      });
+
+      document.getElementById('lCat').textContent = item.category + (item.subcategory ? ' · ' + item.subcategory : '');
+      document.getElementById('lTitle').textContent = item.title;
+      document.getElementById('lPrice').textContent = '฿' + Number(item.price).toLocaleString();
+      document.getElementById('lCond').textContent = item.condition || '-';
+      document.getElementById('lStatus').textContent = item.status === 'sold' ? 'ขายแล้ว' : 'พร้อมขาย';
+      document.getElementById('lDesc').textContent = item.description;
+
+      const sellerName = item.seller && item.seller.name ? item.seller.name : 'ไม่ทราบชื่อ';
+      document.getElementById('sellerBox').innerHTML = `<strong>ผู้ขาย: ${sellerName}</strong>ลงประกาศเมื่อ ${new Date(item.createdAt).toLocaleDateString('th-TH')}`;
+
+      const isOwner = currentUser && item.seller && (item.seller._id === currentUser.id);
+      const actionArea = document.getElementById('actionArea');
+
+      if(isOwner){
+        actionArea.innerHTML = `
+          <div class="owner-actions">
+            ${item.status !== 'sold' ? '<button class="mark-sold-btn" id="markSoldBtn">มาร์คว่าขายแล้ว</button>' : ''}
+            <button class="delete-btn" id="deleteBtn">ลบประกาศ</button>
+          </div>
+        `;
+        const soldBtn = document.getElementById('markSoldBtn');
+        if(soldBtn) soldBtn.addEventListener('click', async () => {
+          try{ await API.markSold(id); toast('มาร์คว่าขายแล้ว', 'success'); setTimeout(() => location.reload(), 800); }
+          catch(err){ toast(err.message, 'error'); }
+        });
+        document.getElementById('deleteBtn').addEventListener('click', async () => {
+          if(!confirm('ต้องการลบประกาศนี้จริงไหม?')) return;
+          try{ await API.deleteListing(id); toast('ลบประกาศเรียบร้อย', 'success'); setTimeout(() => window.location.href = 'my-listings.html', 800); }
+          catch(err){ toast(err.message, 'error'); }
+        });
+      } else if(item.status === 'sold'){
+        actionArea.innerHTML = `<button class="buy-btn" disabled style="opacity:0.5;">สินค้านี้ถูกขายไปแล้ว</button>`;
+      } else {
+        actionArea.innerHTML = `<button class="buy-btn" id="buyBtn">ต้องการซื้อสินค้านี้</button>`;
+        document.getElementById('buyBtn').addEventListener('click', () => {
+          if(!isLoggedIn()){
+            toast('กรุณาเข้าสู่ระบบก่อนติดต่อซื้อสินค้า', 'error');
+            window.location.href = 'login.html';
+            return;
+          }
+          toast('เดโมสำหรับโปรเจกต์เรียน — ยังไม่เชื่อมระบบชำระเงินจริง ผู้ขาย: ' + sellerName, 'info');
+        });
+      }
+    }).catch(err => {
+      console.error(err);
+      document.getElementById('notFound').style.display = 'block';
+    });
+  }
+</script>
+</body>
+</html>

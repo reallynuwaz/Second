@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>สินค้า — SECOND</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="wrap">
+    <a href="#">ความช่วยเหลือ</a>
+    <a href="#">เกี่ยวกับเรา</a>
+  </div>
+</div>
+
+<header>
+  <nav>
+    <div class="logo"><a href="index.html"><span class="logo-se">SE</span><span class="logo-cond">COND</span></a></div>
+    <div class="navlinks" id="navlinks"></div>
+    <div class="nav-right" id="navRight"></div>
+  </nav>
+</header>
+
+<section class="section">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 id="pageTitle">สินค้าทั้งหมด</h2>
+      <div class="sort-row">
+        <label for="sortSelect">เรียงตาม</label>
+        <select id="sortSelect">
+          <option value="date-desc">ลงล่าสุด</option>
+          <option value="date-asc">ลงก่อนหน้า</option>
+          <option value="price-asc">ราคา: ต่ำ → สูง</option>
+          <option value="price-desc">ราคา: สูง → ต่ำ</option>
+          <option value="name-asc">ตัวอักษร: ก-ฮ / A-Z</option>
+          <option value="name-desc">ตัวอักษร: ฮ-ก / Z-A</option>
+        </select>
+        <span class="tag" id="itemCount">0 รายการ</span>
+      </div>
+    </div>
+    <div class="grid" id="resultsGrid"></div>
+  </div>
+</section>
+
+<footer>© 2026 SECOND — BY ANUWAT</footer>
+
+<script src="js/api.js"></script>
+<script src="js/common.js"></script>
+<script>
+  renderNav();
+
+  const params = new URLSearchParams(window.location.search);
+  const category = params.get('category');
+  const subcategory = params.get('subcategory');
+  const q = params.get('q');
+
+  const titleEl = document.getElementById('pageTitle');
+  if(category && subcategory) titleEl.textContent = `${category} — ${subcategory}`;
+  else if(category) titleEl.textContent = category;
+  else if(q) titleEl.textContent = `ผลการค้นหา: "${q}"`;
+  else titleEl.textContent = 'สินค้าทั้งหมด';
+
+  const query = {};
+  if(category) query.category = category;
+  if(subcategory) query.subcategory = subcategory;
+  if(q) query.q = q;
+
+  showSkeleton('resultsGrid', 8);
+  let allItems = [];
+
+  function sortItems(items, sortKey){
+    const sorted = [...items];
+    switch(sortKey){
+      case 'date-asc': sorted.sort((a,b) => new Date(a.createdAt) - new Date(b.createdAt)); break;
+      case 'price-asc': sorted.sort((a,b) => a.price - b.price); break;
+      case 'price-desc': sorted.sort((a,b) => b.price - a.price); break;
+      case 'name-asc': sorted.sort((a,b) => a.title.localeCompare(b.title, 'th')); break;
+      case 'name-desc': sorted.sort((a,b) => b.title.localeCompare(a.title, 'th')); break;
+      case 'date-desc':
+      default: sorted.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+    }
+    return sorted;
+  }
+
+  const sortSelect = document.getElementById('sortSelect');
+  sortSelect.addEventListener('change', () => {
+    renderListingGrid('resultsGrid', sortItems(allItems, sortSelect.value));
+  });
+
+  API.getListings(query).then(items => {
+    allItems = items;
+    renderListingGrid('resultsGrid', sortItems(allItems, sortSelect.value));
+    document.getElementById('itemCount').textContent = items.length + ' รายการ';
+  }).catch(err => {
+    console.error(err);
+    document.getElementById('resultsGrid').innerHTML = `
+      <div class="empty-state">
+        <div class="big">⚠️</div>
+        <strong>เชื่อมต่อ backend ไม่ได้</strong>
+        <p style="margin-top:6px;">เช็คว่ารัน "npm run dev" ที่โฟลเดอร์ backend อยู่ไหม</p>
+      </div>
+    `;
+  });
+</script>
+</body>
+</html>
